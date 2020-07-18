@@ -24,7 +24,7 @@ pygame.display.set_icon(icono)
 
 dang_img = pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR, "dangling.png")).convert_alpha(), (80,80))
 god_imgs = [pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR,"god" + str(x) + ".png" )).convert_alpha(), (80,80)) for x in range(1,4)]
-bg_img = pygame.transform.scale(pygame.image.load(os  .path.join(IMGS_DIR, "bg.png")).convert(), (600,900))
+bg_img = pygame.transform.scale(pygame.image.load(os  .path.join(IMGS_DIR, "bg.png")).convert(), (600,800))
 surface_img = pygame.transform.scale2x(pygame.image.load(os.path.join(IMGS_DIR,"base.png")).convert_alpha())
 surface1_img = pygame.transform.scale2x(pygame.image.load(os.path.join(IMGS_DIR, 'nubes.png')).convert_alpha())
 ultimates_imgs = [pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR, "ulti" + str(x) + ".png")).convert_alpha(),(40,40)) for x in range(1,3)]
@@ -39,12 +39,14 @@ def blitRotateCenter(surf, image, topleft, angle):
 
     surf.blit(rotated_image, new_rect.topleft)
 
-def draw_window(win, dios, dangling, enemies,score, surface1,surface2,evento):
+def draw_window(win, dios, dangling, enemies,score,fps, surface1,surface2,evento):
     win.blit(bg_img, (0,0))
     for enemigo in enemies:
         enemigo.draw(win)
     score_label = pygame.font.SysFont("arial", 50).render("Puntuacion: " + str(score),1,(255,255,255))
     win.blit(score_label, (win_width - score_label.get_width() - 15, 10))
+    fps_label = pygame.font.SysFont("arial", 50).render("FPS: "+ str(fps), True, (255,255,255))
+    win.blit(fps_label,(win_width - fps_label.get_width() - 400, 10))
     surface1.draw(win)
     surface2.draw(win)
     dios.draw(win,evento)
@@ -87,6 +89,8 @@ class God():
         self.y = self.y + displacement
         if evento.type == pygame.KEYUP:
             if evento.key == pygame.K_SPACE:
+                pygame.mixer.music.load('ki.wav')
+                pygame.mixer.music.play(-1)
                 if displacement <  0 or self.y < self.height + 50:
                     if self.inclinar < -90:
                         self.inclinar += self.rot_vel*2
@@ -173,7 +177,7 @@ class Dangling():
 
 class Enemies():
     vel = 15
-    espacio = 300                      
+    espacio = 350                      
     
     def __init__(self, x):
         self.x = x
@@ -302,7 +306,10 @@ def main():
         for evento in pygame.event.get(): 
             if evento.type == pygame.QUIT:
                 run = False
+        if keys[pygame.K_ESCAPE]:
+            run = False
         if keys[pygame.K_SPACE]:
+    
             dios.fly()
         if keys[pygame.K_UP]:
             dang.fly()
@@ -327,6 +334,6 @@ def main():
         dang.move(evento) 
         nubes.move()
         superficie.move()
-        draw_window(win, dios, dang,enemigos,score, superficie,nubes,evento)                  
+        draw_window(win, dios, dang,enemigos,score, round(reloj.get_fps()), superficie,nubes,evento)                  
 if __name__ == '__main__':
     main()
