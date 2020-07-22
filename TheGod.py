@@ -30,6 +30,7 @@ surface1_img = pygame.transform.scale2x(pygame.image.load(os.path.join(IMGS_DIR,
 ultimates_imgs = [pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR, "ulti" + str(x) + ".png")).convert_alpha(),(40,40)) for x in range(1,3)]
 enem_img = pygame.transform.scale2x(pygame.image.load(os.path.join(IMGS_DIR, "enemigo.png")).convert_alpha())
 
+
 def blitRotateCenter(surf, image, topleft, angle):
     """
     Rota una superficie para hacer que se anime como si se estuviera cayendo la imagen
@@ -39,12 +40,14 @@ def blitRotateCenter(surf, image, topleft, angle):
 
     surf.blit(rotated_image, new_rect.topleft)
 
-def draw_window(win, dios, danglings, enemies,score,fps, surface1,surface2,evento):
+def draw_window(win, dios, danglings, enemies,ulti_god,score,fps, surface1,surface2,evento):
     win.blit(bg_img, (0,0))
     for enemigo in enemies:
         enemigo.draw(win)
     for dang in danglings:
         dang.draw(win)
+    for ulti in ulti_god:
+        ulti.draw(win, evento,dios)
     score_label = pygame.font.SysFont("arial", 50).render("Puntuacion: " + str(score),1,(255,255,255))
     win.blit(score_label, (win_width - score_label.get_width() - 15, 10))
     fps_label = pygame.font.SysFont("arial", 50).render("FPS: "+ str(fps), True, (255,255,255))
@@ -63,13 +66,11 @@ class God():
     max_rotation = 25
     imgs = god_imgs
     rot_vel = 15
-    ulti_imgs = ultimates_imgs
     def __init__(self,x,y):
         self.x = x
         self.y = y
         self.inclinar = 0 #Grados a inclinarse
         self.tick_count = 0
-        self.tick_count2 = 0
         self.vel = 0
         self.height = self.y
         self.img = self.imgs[0]
@@ -98,8 +99,8 @@ class God():
                     if self.inclinar > -90:
                         self.inclinar -= self.rot_vel*2
         if displacement < 0 or self.y < self.height + 50:
-                    if self.inclinar < self.max_rotation:
-                        self.inclinar = self.max_rotation/4
+            if self.inclinar < self.max_rotation:
+                self.inclinar = self.max_rotation/4
         else: 
             if self.inclinar > -90:
                 self.inclinar -= self.rot_vel
@@ -108,10 +109,12 @@ class God():
         self.elapsed = pygame.time.get_ticks() - tiempo
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_SPACE:
-                if self.elapsed > 6000:
+                if self.elapsed >= 6000:
                     self.img = self.imgs[2]
-        elif self.elapsed >4000:
+        elif self.elapsed >=4000 and self.elapsed <10000 :
             self.img = self.imgs[1]
+        elif self.elapsed >= 10000:
+            self.img = self.imgs[2]
         else:
             self.img = self.imgs[0]
         #Inclina la imagen
@@ -120,11 +123,60 @@ class God():
     def get_mask(self):
         """
         consigue una mascara para la imagen actual del Dios
-        
-        
+         
         """
         
-        return pygame.mask.from_surface(self.img)
+         
+        dios_mask = pygame.mask.from_surface(self.img)
+        return dios_mask
+class UltimateGod(God):
+    ulti_img = ultimates_imgs
+    rot_vel = 15
+    max_rotation = 25
+    def __init__(self, x, y):
+        self.vel = 15
+        self.inclinar = 0
+        self.ulti_imgs = self.ulti_img[0]
+        self.y = y
+        self. x = x
+        self.pasado = False
+        self.tick_count = 0
+        self.ulti = False
+    def move(self):
+        self.tick_count += 1
+        displacement = self.vel*(self.tick_count)+0.5*(3)*(self.tick_count)**2
+        if displacement >= 16:
+            displacement = (displacement/abs(displacement)) * 16
+        if displacement < 0:
+            displacement -= 2
+        
+        self.x = self.x + displacement
+        if displacement < 0:
+            if self.inclinar < self.max_rotation:
+                self.inclinar = self.max_rotation/4
+        else: 
+            if self.inclinar > -90:
+                self.inclinar -= self.rot_vel
+    def draw(self,win, evento,dios):
+        global tiempo
+        self.elapsed = pygame.time.get_ticks() - tiempo
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_SPACE:
+                if self.elapsed >= 4000:
+                    self.ulti_imgs = self.ulti_img[1]
+        else:
+            self.ulti_imgs = self.ulti_img[0]
+        #Inclina la imagen
+        blitRotateCenter(win, self.ulti_imgs, (self.x,self.y), self.inclinar)
+    def imagen(self,god):
+        """
+        consigue una mascara para la imagen actual de la habilidad del dios
+         
+        """
+        
+         
+        ultigod_mask = pygame.mask.from_surface(self.img) 
+        return ultigod_mask                
 
 class Dangling():
     max_rotation = 25
@@ -262,15 +314,13 @@ class Surface2:
     def draw(self, win):
         win.blit(self.img, (self.x1, self.y))
         win.blit(self.img, (self.x2, self.y))
-        
-
-
-
+                       
 dios = God(100,300)
 dangs = [Dangling(500)]
 superficie = Surface1(suelo)
 nubes = Surface2(tamaño)
 enemigos = [Enemies(win_width)]     
+ulti_god = [UltimateGod(100,300)]
 run = True  
 def main():    
     global WIN,run
@@ -279,18 +329,32 @@ def main():
     reloj = pygame.time.Clock()
     while run:
         reloj.tick(30)
-        keys = pygame.key.get_pressed() 
+        keys = pygame.key.get_pressed()
         for evento in pygame.event.get(): 
             if evento.type == pygame.QUIT:
                 run = False
-        if keys[pygame.K_ESCAPE]:
-            run = False
         if keys[pygame.K_SPACE]:
             dios.fly()
+        if keys[pygame.K_ESCAPE]:
+            run = False
         rem1 = []
         rem2 = []
+        rem3 = []
+        
         add_enemigo = False
         add_dang = False
+        add_ulti_god = False
+        for ulti in ulti_god:
+            ulti.move()
+            if ulti.x > win_width:
+                rem3.append(ulti)
+            if not ulti.pasado and ulti.x > win_width:
+                ulti.pasado = True
+                add_ulti_god = True
+        if add_ulti_god:
+            ulti_god.append(UltimateGod(dios.x, dios.y))
+        for r in rem3:
+            ulti_god.remove(r)
         for enemigo in enemigos:
             enemigo.move()
             # Si el dios choca contra el enemigo hace que se muera
@@ -319,12 +383,14 @@ def main():
             enemigos.append(Enemies(win_width)) 
         for r in rem1:
             enemigos.remove(r)
+            
         if dios.y  >= suelo or dios.y < -50:
             run = False
         dios.move(evento)
+        
         nubes.move()
         superficie.move()
-        draw_window(win, dios, dangs,enemigos,score, round(reloj.get_fps()), superficie,nubes,evento)       
+        draw_window(win, dios, dangs,enemigos,ulti_god, score, round(reloj.get_fps()), superficie,nubes,evento)       
                     
 if __name__ == '__main__':
     main()
