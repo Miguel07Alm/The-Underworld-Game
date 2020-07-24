@@ -21,15 +21,17 @@ WIN = pygame.display.set_mode((win_width, win_height))
 pygame.display.set_caption('The UnderWorld')
 icono = pygame.image.load(os.path.join(IMGS_DIR, 'icono.ico'))
 pygame.display.set_icon(icono)
+pygame.mixer.music.load('underworld.wav')
+pygame.mixer.music.play(-1)
 
-dang = pygame.sprite.Sprite()
+dangling = pygame.sprite.Sprite()
 god = pygame.sprite.Sprite()
 enemigo = pygame.sprite.Sprite()
 ultimate_god = pygame.sprite.Sprite()
 ultimate_dang = pygame.sprite.Sprite()
 
 
-dang.dang_img = pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR, "dangling.png")).convert_alpha(), (80,80))
+dangling.dang_img = pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR, "dangling.png")).convert_alpha(), (80,80))
 god.god_imgs = [pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR,"god" + str(x) + ".png" )).convert_alpha(), (80,80)) for x in range(1,6)]
 bg_img = pygame.transform.scale(pygame.image.load(os  .path.join(IMGS_DIR, "bg.png")).convert(), (600,800))
 surface_img = pygame.transform.scale2x(pygame.image.load(os.path.join(IMGS_DIR,"base.png")).convert_alpha())
@@ -37,7 +39,6 @@ surface1_img = pygame.transform.scale2x(pygame.image.load(os.path.join(IMGS_DIR,
 ultimate_god.ultimates_imgs = [pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR, "ulti" + str(x) + ".png")).convert_alpha(),(25,25)) for x in range(1,4)]
 enemigo.enem_img = pygame.transform.scale2x(pygame.image.load(os.path.join(IMGS_DIR, "enemigo.png")).convert_alpha())
 ultimate_dang.ultimate_img = [pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR, "ulti_dang.png")).convert_alpha(),(25,25))]
-
 def blitRotateCenter(surf, image, topleft, angle):
     """
     Rota una superficie para hacer que se anime como si se estuviera cayendo la imagen
@@ -54,7 +55,7 @@ def blitRotateRight(surf, image, topright, angle):
     new_rect = rotated_image.get_rect(center = image.get_rect(topright = topright).center)
 
     surf.blit(rotated_image, new_rect.topright)
-def draw_window(win, dios, danglings, enemies_top,enemies_bottom,ulti_god,score,fps, surface1,surface2,evento):
+def draw_window(win, dios, danglings, ulti_dang,enemies_top,enemies_bottom,ulti_god,score,fps, surface1,surface2,evento):
     win.blit(bg_img, (0,0))
     score_label = pygame.font.SysFont("arial", 50).render("Puntuacion: " + str(score),1,(255,255,255))
     fps_label = pygame.font.SysFont("arial", 40).render("FPS: "+ str(fps), 1, (255,255,255))
@@ -66,8 +67,10 @@ def draw_window(win, dios, danglings, enemies_top,enemies_bottom,ulti_god,score,
         enemigo.draw(win)
     for dang in danglings:
         dang.draw(win)
+    for ulti_dang in ulti_dang:
+        ulti_dang.draw(win)
     for ulti in ulti_god:
-        ulti.draw(win, evento)       
+        ulti.draw(win, evento)      
     dios.draw(win,evento)
     win.blit(score_label, (win_width - score_label.get_width() - 15, 10))
     win.blit(fps_label,(0 , 10))
@@ -108,8 +111,6 @@ class God(pygame.sprite.Sprite):
         self.rect.y = self.rect.y + displacement
         if evento.type == pygame.KEYUP:
             if evento.key == pygame.K_SPACE:
-                pygame.mixer.music.load('ki.wav')
-                pygame.mixer.music.play(-1)
                 if displacement <  0 or self.rect.y < self.height + 50:
                     if self.inclinar < -90:
                         self.inclinar += self.rot_vel*2
@@ -196,11 +197,27 @@ class UltimateGod(pygame.sprite.Sprite):
         """
         Extrae los bits de la imagen de la ulti
         """
-        ulti_mask = pygame.mask.from_surface(self.ulti_imgs)
-        return ulti_mask
+        return pygame.mask.from_surface(self.ulti_imgs)
+    def colision_dang(self, dang, win):
+        """
+        Hace que devuelva el punto por el cual el god y dangling se chocaron con el enemigo
+        
+        """
+        dang_mask = dang.get_mask()
+        ulti_mask = self.get_mask()
+        ulti_offset = (self.rect.x - round(dang.rect.x), self.rect.y - dang.rect.height)
+        
+        c_point = dang_mask.overlap(ulti_mask, ulti_offset)
+        
+        
+        
+        if c_point:
+            return True
+
+        return False
 class Dangling(pygame.sprite.Sprite):
     max_rotation = 25
-    img = dang.dang_img
+    img = dangling.dang_img
     rot_vel = 20
     def __init__(self,x):
         pygame.sprite.Sprite.__init__(self)
@@ -209,17 +226,16 @@ class Dangling(pygame.sprite.Sprite):
         self.tick_count = 0
         self.vel = 0
         self.cruzar = False
-        self.espacio = 600
         self.rect = self.img.get_rect()
         self.rect.x = x
         self.configuracion()
     def configuracion(self):
-        self.height = random.randrange(100,450) 
+        self.rect.height = random.randrange(100,450) 
     def move(self):
         self.vel = 10
-        self.x = self.x - self.vel
+        self.rect.x = self.rect.x - self.vel
     def draw(self,win):
-        win.blit(self.img, (self.x, self.height))
+        win.blit(self.img, (self.rect.x, self.rect.height))
     def get_mask(self):
         """
         consigue una mascara para la imagen actual del Dangling
@@ -227,55 +243,65 @@ class Dangling(pygame.sprite.Sprite):
         
         """
         return pygame.mask.from_surface(self.img)
+    def colision(self, god, win):
+        """
+        Hace que devuelva el punto por el cual el god y dangling se chocaron con el enemigo
+        
+        """
+        god_mask = god.get_mask()
+        dang_mask = self.get_mask()
+        dang_offset = (self.rect.x - god.rect.x, self.rect.height - round(god.rect.y))
+        
+        c_point = god_mask.overlap(dang_mask, dang_offset)
+        
+        
+        
+        if c_point:
+            return True
+
+        return False
+    
 class UltimateDang(pygame.sprite.Sprite):
     ulti_img = ultimate_dang.ultimate_img
-    rot_vel = 20
-    max_rotation = 50
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        
-        self.vel = 15
-        self.inclinar = 0
         self.ulti_imgs = self.ulti_img[0]
+        self.vel = 20
+        self.inclinar = 0
         self.pasado = False
         self.tick_count = 0
         self.rect = self.ulti_imgs.get_rect()
-        self.rect.x = dang.rect.x
-        self.rect.y = dang.rect.y
+        for dang in dangs:
+            self.rect.x = dang.rect.x
+            self.rect.y = dang.rect.height
+            
     def move(self):
-        self.tick_count += 1
-        displacement = self.vel*(self.tick_count)+0.5*(3)*(self.tick_count)**2
-        if displacement >= 16:
-            displacement = (displacement/abs(displacement)) * 16
-        if displacement < 0:
-            displacement -= 2
-        
-        self.rect.x = self.rect.x + displacement
-        if displacement < 0:  
-            if self.inclinar < self.max_rotation:
-                self.inclinar += self.max_rotation*5 
-        else:  
-            if self.inclinar > -90:
-                self.inclinar += self.rot_vel
-    def draw(self,win, evento):
-        global tiempo 
-        self.elapsed = pygame.time.get_ticks() - tiempo
-        
-        if self.elapsed >= 5000 and self.elapsed < 10000 :
-            self.ulti_imgs = self.ulti_img[1] 
-        elif self.elapsed >=10000:  
-            self.ulti_imgs = self.ulti_img[2]
-        else:
-            self.ulti_imgs = self.ulti_img[0]
+        self.rect.x = self.rect.x - self.vel
+    def draw(self,win):
         #Inclina la imagen
-        blitRotateRight(win, self.ulti_imgs, (self.rect.x,self.rect.y), self.inclinar)   
+        win.blit(self.ulti_imgs, (self.rect.x,self.rect.y))   
     def get_mask(self):
         """
         Extrae los bits de la imagen de la ulti
+        """ 
+        return pygame.mask.from_surface(self.ulti_imgs)
+    def colision_god(self, god, win):
         """
-        ulti_mask = pygame.mask.from_surface(self.ulti_imgs)
-        return ulti_mask
+        Hace que devuelva el punto por el cual el god y dangling se chocaron con el enemigo
+        
+        """
+        god_mask = god.get_mask()
+        ulti_mask = self.get_mask()
+        ulti_offset = (self.rect.x - god.rect.x, self.rect.y - round(god.rect.y))
+        
+        c_point = god_mask.overlap(ulti_mask, ulti_offset)
+        
+        
+        
+        if c_point:
+            return True
 
+        return False
 class Enemies_Top(pygame.sprite.Sprite):
     vel = 15                      
     
@@ -292,7 +318,7 @@ class Enemies_Top(pygame.sprite.Sprite):
 
         self.configurar_altura()
     def configurar_altura(self):
-        self.height = random.randrange(10,200)
+        self.height = random.randrange(100,300)
         self.top = self.height - self.enemy_top.get_height()
     
     def move(self):
@@ -441,7 +467,8 @@ class Surface2:
         win.blit(self.img, (self.x2, self.y))
                        
 dios = God(100,300)
-dangs = [Dangling(500)]
+dangs = [Dangling(win_width)]
+ulti_dang = [UltimateDang()]
 superficie = Surface1(suelo)
 nubes = Surface2(tamaño)
 enemigos_top = [Enemies_Top(win_width)]
@@ -474,18 +501,26 @@ def main():
         rem_bot = []
         rem2 = []
         rem3 = []
+        rem4 = []
         add_ulti = False
         add_enemigo_top = False
         add_enemigo_bottom = False
         add_dang = False
+        add_ulti_dang = False
         colision = False
         pasado_width = False
+        colision_dang = False
         for ulti in ulti_god:              
-
             if ulti_activada:
                 ulti.move() 
             else:
                 ulti.rect.midleft = dios.rect.midright
+            for dang in dangs:
+                if ulti.colision_dang(dang,win):
+                    dangs.clear()
+                    ulti_dang.clear()
+                    colision_dang = True
+                    score += 1
             if ulti.rect.x > win_width:
                 rem3.append(ulti)
             if not ulti.pasado and ulti.rect.x > win_width:
@@ -509,12 +544,13 @@ def main():
                 run = False
             if enemigo_top.x + enemigo_top.enemy_top.get_width() < 0:
                 rem_top.append(enemigo_top)
+                pasado_width = True
             if not enemigo_top.passed and enemigo_top.x < dios.rect.x:
                 enemigo_top.passed = True
                 add_enemigo_top = True
-                pasado_width = True
             if colision:
                 add_enemigo_top= True
+                
         for enemigo in enemigos_bottom:
             enemigo.move()
             for ulti in ulti_god:
@@ -526,38 +562,67 @@ def main():
                 run = False
             if enemigo.x  + enemigo.enemy_bottom.get_height() < 0:
                 rem_bot.append(enemigo)
+                pasado_width = True
             if not enemigo.passed and enemigo.x < dios.rect.x:
                 enemigo.passed = True
                 add_enemigo_bottom = True 
-                pasado_width = True
             if colision:
                 add_enemigo_bottom= True
+        
         for dang in dangs:
             dang.move()
-            if dang.x < 0:
+            if dang.colision(dios, win):
+                run = False
+            if dang.rect.x + dang.img.get_width() < 0:
                 rem2.append(dang)
-            if not dang.cruzar and dang.x < 0:
-                dang.cruzar = True
-                add_dang = True            
+                add_dang = True
+            if not dang.cruzar and dang.rect.x < 0:
+                dang.cruzar = True     
+        
+        for ulti in ulti_dang:
+            ulti.move()
+            if ulti.colision_god(dios,win):
+                score -= 1
+            if ulti.rect.x > win_width:
+                rem4.append(ulti)
+            if not ulti.pasado and ulti.rect.x < 0:
+                ulti.pasado = True
+                add_ulti_dang = True
+        
         if add_dang:
-            dangs.append(Dangling(win_width))
+            dangs.append(Dangling(win_width)) 
+            ulti_dang.append(UltimateDang())
+        if colision_dang:
+            dangs.append(Dangling(win_width)) 
+            ulti_dang.append(UltimateDang())
+        
+        for r in rem4:
+            ulti_dang.remove(r)
+        
         for r in rem2:
             dangs.remove(r)
+            
         if add_enemigo_top or add_enemigo_bottom:
             score += 1
+        
         if pasado_width:
             enemigos_top.append(Enemies_Top(win_width))
             enemigos_bottom.append(Enemies_Bottom(win_width))
-        for i in rem_top:
-            enemigos_top.remove(i)
+        
+        if not pasado_width and len(enemigos_top) == 0 and len(enemigos_bottom) == 0:
+            enemigos_bottom.append(Enemies_Bottom(win_width))
+            enemigos_top.append(Enemies_Top(win_width))
+        
         for r in rem_bot:
-            enemigos_bottom.remove(r)          
+            enemigos_bottom.remove(r)  
+        for i in rem_top:
+            enemigos_top.remove(i)        
         
         if dios.rect.y + dios.img.get_height() - 10  >= suelo or dios.rect.y < -50:
             run = False
         dios.move(evento)
         nubes.move()
-        draw_window(win, dios, dangs,enemigos_top,enemigos_bottom,ulti_god, score, round(reloj.get_fps()), superficie,nubes,evento)       
+        draw_window(win, dios, dangs,ulti_dang,enemigos_top,enemigos_bottom,ulti_god, score, round(reloj.get_fps()), superficie,nubes,evento)       
                     
 if __name__ == '__main__':
     main()
