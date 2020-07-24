@@ -55,10 +55,11 @@ def blitRotateRight(surf, image, topright, angle):
     new_rect = rotated_image.get_rect(center = image.get_rect(topright = topright).center)
 
     surf.blit(rotated_image, new_rect.topright)
-def draw_window(win, dios, danglings, ulti_dang,enemies_top,enemies_bottom,ulti_god,score,fps, surface1,surface2,evento):
+def draw_window(win, dios, danglings, ulti_dang,ulti_lista,enemies_top,enemies_bottom,ulti_god,score,fps, surface1,surface2,evento):
     win.blit(bg_img, (0,0))
     score_label = pygame.font.SysFont("arial", 50).render("Puntuacion: " + str(score),1,(255,255,255))
     fps_label = pygame.font.SysFont("arial", 40).render("FPS: "+ str(fps), 1, (255,255,255))
+    ulti_label = pygame.font.SysFont("arial", 40).render("Ulti: " + str(ulti_lista),1,(0,0,0  ))
     surface1.draw(win)
     surface2.draw(win)
     for enemigo in enemies_top:
@@ -74,6 +75,7 @@ def draw_window(win, dios, danglings, ulti_dang,enemies_top,enemies_bottom,ulti_
     dios.draw(win,evento)
     win.blit(score_label, (win_width - score_label.get_width() - 15, 10))
     win.blit(fps_label,(0 , 10))
+    win.blit(ulti_label,(125,10))
     pygame.display.flip()
 
     
@@ -480,6 +482,9 @@ def main():
     global WIN,run
     win = WIN
     score = 0  
+    ulti_lista = ""
+    opcion1 = "Press 1"
+    opcion2 = "Activated"
     reloj = pygame.time.Clock()
     ulti_activada= False
     while run:
@@ -494,7 +499,10 @@ def main():
                     ulti_activada= True
                 if evento.key == pygame.K_SPACE:
                     dios.fly()
-        
+        if not(ulti_activada):
+            ulti_lista = opcion1
+        else:
+            ulti_lista = opcion2
         if keys[pygame.K_ESCAPE]:
             run = False
         rem_top = []
@@ -622,7 +630,7 @@ def main():
             run = False
         dios.move(evento)
         nubes.move()
-        draw_window(win, dios, dangs,ulti_dang,enemigos_top,enemigos_bottom,ulti_god, score, round(reloj.get_fps()), superficie,nubes,evento)       
+        draw_window(win, dios, dangs,ulti_dang,ulti_lista,enemigos_top,enemigos_bottom,ulti_god, score, round(reloj.get_fps()), superficie,nubes,evento)       
                     
 if __name__ == '__main__':
     main()
