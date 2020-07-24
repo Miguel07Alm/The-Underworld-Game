@@ -39,6 +39,10 @@ surface1_img = pygame.transform.scale2x(pygame.image.load(os.path.join(IMGS_DIR,
 ultimate_god.ultimates_imgs = [pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR, "ulti" + str(x) + ".png")).convert_alpha(),(25,25)) for x in range(1,4)]
 enemigo.enem_img = pygame.transform.scale2x(pygame.image.load(os.path.join(IMGS_DIR, "enemigo.png")).convert_alpha())
 ultimate_dang.ultimate_img = [pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR, "ulti_dang.png")).convert_alpha(),(25,25))]
+
+ultimate_god.ultimates_foto = [pygame.transform.scale(pygame.image.load(os.path.join(IMGS_DIR, "ulti" + str(x) + ".png")).convert_alpha(),(50,50)) for x in range(1,4)]
+
+
 def blitRotateCenter(surf, image, topleft, angle):
     """
     Rota una superficie para hacer que se anime como si se estuviera cayendo la imagen
@@ -55,11 +59,11 @@ def blitRotateRight(surf, image, topright, angle):
     new_rect = rotated_image.get_rect(center = image.get_rect(topright = topright).center)
 
     surf.blit(rotated_image, new_rect.topright)
-def draw_window(win, dios, danglings, ulti_dang,ulti_lista,enemies_top,enemies_bottom,ulti_god,score,fps, surface1,surface2,evento):
+def draw_window(win, dios, danglings, ulti_dang,ulti_foto,ulti_lista,enemies_top,enemies_bottom,ulti_god,score,fps, surface1,surface2,evento):
     win.blit(bg_img, (0,0))
-    score_label = pygame.font.SysFont("arial", 50).render("Puntuacion: " + str(score),1,(255,255,255))
+    score_label = pygame.font.SysFont("arial", 50).render("Score: " + str(score),1,(255,255,255))
     fps_label = pygame.font.SysFont("arial", 40).render("FPS: "+ str(fps), 1, (255,255,255))
-    ulti_label = pygame.font.SysFont("arial", 40).render("Ulti: " + str(ulti_lista),1,(0,0,0  ))
+    ulti_label = pygame.font.SysFont("arial", 40).render(" :" + str(ulti_lista),1,(0,0,0 ))
     surface1.draw(win)
     surface2.draw(win)
     for enemigo in enemies_top:
@@ -71,11 +75,13 @@ def draw_window(win, dios, danglings, ulti_dang,ulti_lista,enemies_top,enemies_b
     for ulti_dang in ulti_dang:
         ulti_dang.draw(win)
     for ulti in ulti_god:
-        ulti.draw(win, evento)      
+        ulti.draw(win, evento)     
+    for ulti in ulti_foto:
+        ulti.draw(win,evento)
     dios.draw(win,evento)
     win.blit(score_label, (win_width - score_label.get_width() - 15, 10))
     win.blit(fps_label,(0 , 10))
-    win.blit(ulti_label,(125,10))
+    win.blit(ulti_label,(235,10))
     pygame.display.flip()
 
     
@@ -217,6 +223,26 @@ class UltimateGod(pygame.sprite.Sprite):
             return True
 
         return False
+class Ultimate_foto(pygame.sprite.Sprite):
+    ulti_img = ultimate_god.ultimates_foto
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.ulti_imgs = self.ulti_img[0]
+        self.rect = self.ulti_imgs.get_rect()
+        self.rect.x = 200
+        self.rect.y = 10
+    def draw(self,win, evento):
+        global tiempo 
+        self.elapsed = pygame.time.get_ticks() - tiempo
+        
+        if self.elapsed >= 5000 and self.elapsed < 10000 :
+            self.ulti_imgs = self.ulti_img[1] 
+        elif self.elapsed >=10000:  
+            self.ulti_imgs = self.ulti_img[2]
+        else:
+            self.ulti_imgs = self.ulti_img[0]
+        #Inclina la imagen
+        win.blit(self.ulti_imgs, (self.rect.x,self.rect.y))   
 class Dangling(pygame.sprite.Sprite):
     max_rotation = 25
     img = dangling.dang_img
@@ -476,6 +502,7 @@ nubes = Surface2(tamaño)
 enemigos_top = [Enemies_Top(win_width)]
 enemigos_bottom = [Enemies_Bottom(win_width)]     
 ulti_god = [UltimateGod()]
+ulti_foto = [Ultimate_foto()]
 run = True  
 
 def main():    
@@ -630,7 +657,7 @@ def main():
             run = False
         dios.move(evento)
         nubes.move()
-        draw_window(win, dios, dangs,ulti_dang,ulti_lista,enemigos_top,enemigos_bottom,ulti_god, score, round(reloj.get_fps()), superficie,nubes,evento)       
+        draw_window(win, dios, dangs,ulti_dang,ulti_foto,ulti_lista,enemigos_top,enemigos_bottom,ulti_god, score, round(reloj.get_fps()), superficie,nubes,evento)       
                     
 if __name__ == '__main__':
     main()
