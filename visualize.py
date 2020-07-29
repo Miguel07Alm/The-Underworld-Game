@@ -117,7 +117,7 @@ def plot_species(statistics, view=False, filename='speciation.svg'):
     plt.close()
 
 
-def draw_net(config, genome, view=False, filename=None, node_names=None, show_disabled=True, prune_unused=False,
+def draw_net(config, genome, view=True, filename=None, node_names=None, show_disabled=True, prune_unused=False,
              node_colors=None, fmt='svg'):
     """ Receives a genome and draws a neural network with arbitrary topology. """
     # Attributes for network nodes.

@@ -10,6 +10,7 @@ import visualize
 import graphviz
 
 pygame.font.init() 
+pygame.mixer.pre_init(16500, -16, 2, 2048)
 pygame.mixer.init()
 pygame.init()
 
@@ -30,6 +31,8 @@ WIN = pygame.display.set_mode((win_width, win_height))
 pygame.display.set_caption('The UnderWorld')
 icono = pygame.image.load(os.path.join(IMGS_DIR, 'icono.ico'))
 pygame.display.set_icon(icono)
+
+
 
 dangling = pygame.sprite.Sprite()
 god = pygame.sprite.Sprite()
@@ -127,7 +130,7 @@ def draw_window_AI(win,gen, dios, danglings, ulti_dang, enemies,ulti_god,score,f
                     pass            
             god.draw(win)
             
-        gen_label = pygame.font.SysFont("arial",40).render("Gens: " + str(gen-1),1,(255,255,255))
+        gen_label = pygame.font.SysFont("arial",40).render("Gens: " + str(gen),1,(255,255,255))
         win.blit(gen_label, (0, 40))
         alive_label = pygame.font.SysFont("arial",40).render("Alive: " + str(len(dios)),1,(255,255,255))
         win.blit(alive_label, (0, 75))
@@ -152,6 +155,7 @@ class God(pygame.sprite.Sprite):
         self.inclinar = 0 #Grados a inclinarse
         self.tick_count = 0
         self.vel = 0
+        self.elapsed = 0
         self.img = self.imgs[0]
         self.rect = self.img.get_rect()
         self.height = self.rect.y
@@ -186,30 +190,33 @@ class God(pygame.sprite.Sprite):
                 self.inclinar -= self.rot_vel
     def draw(self, win,evento):
         global tiempo, score
-        self.elapsed = pygame.time.get_ticks() - tiempo
+        if score > 0:
+            self.elapsed = pygame.time.get_ticks() - tiempo
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_SPACE:
-                if self.elapsed >= 10000 and self.elapsed <15000:
+                if self.elapsed >= 4000 and self.elapsed <8000 and score > 0:
+                    self.img = self.imgs[1]
+                elif self.elapsed >=8000 and self.elapsed <12000 and score > 0:
                     self.img = self.imgs[2]
-                elif self.elapsed >=15000 and self.elapsed <25000:
+                elif self.elapsed >=12000 and self.elapsed < 16000 and score > 0:
                     self.img = self.imgs[3]
-                elif self.elapsed >=25000 and self.elapsed < 30000:
+                elif self.elapsed >=16000 and self.elapsed < 20000 and score > 0:
                     self.img = self.imgs[4]
-                elif self.elapsed >= 30000 and self.elapsed < 40000:
+                elif score >= 30:
                     self.img = self.imgs[8]
-                    
-        elif self.elapsed >=10000 and self.elapsed <15000:
-            self.img = self.imgs[1]
-        elif self.elapsed >=15000 and self.elapsed <25000:
-            self.img = self.imgs[2]
-        elif self.elapsed >=25000:
-            self.img = self.imgs[3]
-        
-        else:
+                elif score >= 50:
+                    self.img = self.imgs[6]
+        elif self.elapsed >=0 and self.elapsed < 2000 and score > 0:
             self.img = self.imgs[0]
-        if score >= 20 and self.elapsed >=30000:
+        elif self.elapsed >=2000 and self.elapsed <  4000 and score > 0:
+            self.img = self.imgs[1]
+        elif self.elapsed >=4000 and self.elapsed < 8000 and score > 0:
+            self.img = self.imgs[2]
+        elif self.elapsed >=8000  and score > 0:
+            self.img = self.imgs[3]
+        if score >= 30 and self.elapsed >=15000:
             self.img = self.imgs[7]
-        elif score >=30 and self.elapsed >= 40000:
+        if score >=50 and self.elapsed >= 25000:
             self.img = self.imgs[6]
         #Inclina la imagen
         blitRotateCenter(win, self.img, (self.rect.x,self.rect.y), self.inclinar)
@@ -236,6 +243,7 @@ class God_AI(pygame.sprite.Sprite):
         self.tick_count = 0
         self.img_count = 0
         self.vel = 0
+        self.elapsed = 0
         self.__num_random = random.randint(0,8)
         self.img = self.imgs[0]
         self.rect = self.img.get_rect()
@@ -269,15 +277,16 @@ class God_AI(pygame.sprite.Sprite):
                 self.inclinar -= self.rot_vel
     def draw(self, win):
         global tiempo, score
-        self.elapsed = pygame.time.get_ticks() - tiempo
+        if score >0:
+            self.elapsed = pygame.time.get_ticks() - tiempo
         if self.__num_random == 0 or self.__num_random == 1 or self.__num_random == 2 or self.__num_random == 3 or self.__num_random == 4 :
-            if self.elapsed >= 2000 and self.elapsed < 4000:
+            if self.elapsed >= 4000 and self.elapsed < 8000 and score > 0:
                 self.img = self.imgs[1]
-            elif self.elapsed >= 4000 and self.elapsed < 8000:
+            elif self.elapsed >= 8000 and self.elapsed < 12000 and score > 0:
                 self.img = self.imgs[2]
-            elif self.elapsed >= 8000 and self.elapsed < 12000:
+            elif self.elapsed >= 12000 and self.elapsed < 16000 and score > 0:
                 self.img = self.imgs[3]
-            elif self.elapsed >= 12000:
+            elif self.elapsed >= 16000 and score > 0:
                 self.img = self.imgs[4]
                 
             else:
@@ -288,7 +297,7 @@ class God_AI(pygame.sprite.Sprite):
             self.img = self.imgs[6]
         elif self.__num_random == 7:
             self.img = self.imgs[7]
-            if score >10 and self.elapsed >= 20000:
+            if score >10 and self.elapsed >= 25000:
                 self.img = self.imgs[8]
         
         #Inclina la imagen
@@ -313,6 +322,7 @@ class UltimateGod(pygame.sprite.Sprite):
         self.ulti_imgs = self.ulti_img[0]
         self.pasado = False
         self.tick_count = 0
+        self.elapsed = 0
         self.rect = self.ulti_imgs.get_rect()
         for god in dios:    
             self.rect.x = god.rect.x
@@ -333,15 +343,16 @@ class UltimateGod(pygame.sprite.Sprite):
             if self.inclinar > -90:
                 self.inclinar += self.rot_vel
     def draw(self,win):
-        global tiempo 
-        self.elapsed = pygame.time.get_ticks() - tiempo
-        
-        if self.elapsed >= 5000 and self.elapsed < 10000 :
-            self.ulti_imgs = self.ulti_img[1] 
-        elif self.elapsed >=10000:  
-            self.ulti_imgs = self.ulti_img[2]
-        else:
+        global tiempo, score
+        if score > 0:
+            self.elapsed = pygame.time.get_ticks() - tiempo
+        if self.elapsed >= 0 and self.elapsed < 5000 and score >0 :
             self.ulti_imgs = self.ulti_img[0]
+        elif score >5:
+            self.ulti_imgs = self.ulti_img[1] 
+        elif score >= 15 and self.elapsed >= 10000:  
+            self.ulti_imgs = self.ulti_img[2]
+        
         #Inclina la imagen
         blitRotateRight(win, self.ulti_imgs, (self.rect.x,self.rect.y), self.inclinar)   
     def get_mask(self):
@@ -378,6 +389,7 @@ class UltimateGod_AI(pygame.sprite.Sprite):
         self.inclinar = 0
         self.ulti_imgs = self.ulti_img[0]
         self.pasado = False
+        self.elapsed = 0
         self.tick_count = 0
         self.rect = self.ulti_imgs.get_rect()
         for god in GODS:    
@@ -399,15 +411,16 @@ class UltimateGod_AI(pygame.sprite.Sprite):
             if self.inclinar > -90:
                 self.inclinar += self.rot_vel
     def draw(self,win):
-        global tiempo 
-        self.elapsed = pygame.time.get_ticks() - tiempo
-            
-        if self.elapsed >= 5000 and self.elapsed < 10000 :
-            self.ulti_imgs = self.ulti_img[1] 
-        elif self.elapsed >=10000:  
-            self.ulti_imgs = self.ulti_img[2]
-        else:
+        global tiempo, score 
+        if score > 0:
+            self.elapsed = pygame.time.get_ticks() - tiempo
+        if self.elapsed >= 0 and self.elapsed < 5000 and score >0 :
             self.ulti_imgs = self.ulti_img[0]
+        elif score >=5 and score <15:
+            self.ulti_imgs = self.ulti_img[1] 
+        elif score >= 15 and self.elapsed >= 10000:  
+            self.ulti_imgs = self.ulti_img[2]
+        
         #Inclina la imagen
         blitRotateRight(win, self.ulti_imgs, (self.rect.x,self.rect.y), self.inclinar)   
     def get_mask(self):
@@ -441,16 +454,18 @@ class Ultimate_foto(pygame.sprite.Sprite):
         self.rect = self.ulti_imgs.get_rect()
         self.rect.x = 200
         self.rect.y = 10
+        self.elapsed = 0
     def draw(self,win):
-        global tiempo 
-        self.elapsed = pygame.time.get_ticks() - tiempo
-        
-        if self.elapsed >= 5000 and self.elapsed < 10000 :
-            self.ulti_imgs = self.ulti_img[1] 
-        elif self.elapsed >=10000:  
-            self.ulti_imgs = self.ulti_img[2]
-        else:
+        global tiempo, score        
+        if score > 0:
+            self.elapsed = pygame.time.get_ticks() - tiempo
+        if self.elapsed >= 0 and self.elapsed < 5000 and score >0 :
             self.ulti_imgs = self.ulti_img[0]
+        elif score >5:
+            self.ulti_imgs = self.ulti_img[1] 
+        elif score >= 15 and self.elapsed >= 10000:  
+            self.ulti_imgs = self.ulti_img[2]
+        
         #Inclina la imagen
         win.blit(self.ulti_imgs, (self.rect.x,self.rect.y))   
 class Dangling(pygame.sprite.Sprite):
@@ -669,7 +684,7 @@ class Enemies_AI(pygame.sprite.Sprite):
 
         self.height_setting()
     def height_setting(self):
-        self.height = random.randrange(50,450)
+        self.height = random.randrange(75,450)
         self.bottom = self.height + self.espacio
         self.top = self.height - self.enemy_top.get_height()
     
@@ -788,7 +803,7 @@ run = True
 
 run_AI = False
 def eval_genomes(genomes, config):
-    global WIN, run, menu_setting, run_AI, gen, GODS
+    global WIN, run, menu_setting, run_AI, gen, GODS,score
     win = WIN
     # Creation of a list when it contains the nets of the neural network and the genome for holding itself
     gen += 1
@@ -803,28 +818,25 @@ def eval_genomes(genomes, config):
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         nets.append(net)
         GODS.append(God_AI(100,300))
-        ULTI_GOD.append(UltimateGod_AI())
         ge.append(genome)
     
 
     enemies_AI = [Enemies_AI(win_width)]
-    score = 0
+    ULTI_GOD = [UltimateGod_AI()]
     enem_killed = 0
     activated_ulti = False
     clock = pygame.time.Clock()
-    pygame.mixer.music.load('underworld.wav')
-    pygame.mixer.music.play(-1)
+    score = 0
     while run_AI and len(GODS) > 0:
         clock.tick(30)
         events = pygame.event.get()
         for evento in events:
             if evento.type == pygame.QUIT:
-                RUN_AI = False
+                run_AI = False
                 pygame.quit()
                 break
         enem_ind = 0
         dang_ind = 0
-        
         
         add_ulti = False
         add_enemy = False
@@ -851,14 +863,16 @@ def eval_genomes(genomes, config):
             if output1[0] > 0.5:
                 god.fly()
             output2 = nets[GODS.index(god)].activate((god.rect.y, abs(god.rect.y - dangs[dang_ind].rect.height), abs(god.rect.y - dangs[dang_ind].rect.x)))
-
-            for ulti in ULTI_GOD:     
-                if output1[0] > 0.8:
-                    ulti.move()
-                elif output2[0] > 0.5:
-                    ulti.move()     
-                else:
-                    ulti.rect.midleft = GODS[x].rect.midright
+            if output2[0] > 0.5:
+                god.fly()
+        for ulti in ULTI_GOD:     
+            if output2[0] > -0.5 or output1[0] > 0.5:
+                activated_ulti = True
+            if activated_ulti:
+                ulti.move()
+            else:
+                for god in GODS:
+                    ulti.rect.midleft = god.rect.midright
         superficie.move()
         nubes.move()
         
@@ -883,7 +897,9 @@ def eval_genomes(genomes, config):
             ulti.move()
             for god in GODS:    
                 if ulti.colision_god(god,win):
-                    score -= 1
+                    for genome in ge:
+                        genome.fitness -= 1
+            
             if ulti.rect.x > win_width:
                 rem_ulti_dang.append(ulti)
             if not ulti.pasado and ulti.rect.x < 0:
@@ -995,7 +1011,21 @@ def eval_genomes(genomes, config):
 def main():    
     global WIN, run, menu_setting, run_AI, gen, score, instructions
     win = WIN
- 
+    # ALGORITHM FOR PLAYING 4 TYPES OF MUSIC
+    random_music = random.randint(0,3)
+    songs = [pygame.mixer.Sound(os.path.join(DIR,"base" + str(x) + ".wav")) for x in range(1,5)]
+    if random_music == 0:
+        
+        pygame.mixer.Channel(0).play(songs[0],-1)
+        
+    elif random_music == 1:
+        pygame.mixer.Channel(1).play(songs[1],-1)
+        
+    elif random_music == 2:
+        pygame.mixer.Channel(2).play(songs[2],-1)
+    elif random_music == 3:
+        pygame.mixer.Channel(3).play(songs[3],-1)
+
     ulti_lista = ""
     opcion1 = "Press 1"
     opcion2 = "Activated"
@@ -1040,9 +1070,6 @@ def main():
                     run = False
                     menu_setting = False
         pygame.display.flip()
-    if run:
-        pygame.mixer.music.load('underworld.wav')
-        pygame.mixer.music.play(-1)
     while run and not menu_setting:
         reloj.tick(30)
         keys = pygame.key.get_pressed()
