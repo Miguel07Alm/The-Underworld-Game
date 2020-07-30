@@ -21,6 +21,7 @@ tamaño = 25
 menu_setting = True
 GEN_LINES = False
 score = 0 
+best_genome = False
 
 tiempo = pygame.time.get_ticks()
 
@@ -346,9 +347,9 @@ class UltimateGod(pygame.sprite.Sprite):
         global tiempo, score
         if score > 0:
             self.elapsed = pygame.time.get_ticks() - tiempo
-        if self.elapsed >= 0 and self.elapsed < 5000 and score >0 :
+        if self.elapsed >= 0 and self.elapsed < 5000 and score >0 and score < 5:
             self.ulti_imgs = self.ulti_img[0]
-        elif score >5:
+        elif score >= 5 and self.elapsed >= 5000 and self.elapsed < 10000:
             self.ulti_imgs = self.ulti_img[1] 
         elif score >= 15 and self.elapsed >= 10000:  
             self.ulti_imgs = self.ulti_img[2]
@@ -803,7 +804,7 @@ run = True
 
 run_AI = False
 def eval_genomes(genomes, config):
-    global WIN, run, menu_setting, run_AI, gen, GODS,score
+    global WIN, run, menu_setting, run_AI, gen, GODS,score, best_genome
     win = WIN
     # Creation of a list when it contains the nets of the neural network and the genome for holding itself
     gen += 1
@@ -1007,10 +1008,14 @@ def eval_genomes(genomes, config):
                 GODS.pop(GODS.index(god))
 
         draw_window_AI(win, gen, GODS, dangs, ulti_dang, enemies_AI, ULTI_GOD, score, round(clock.get_fps()), superficie, nubes, enem_ind, dang_ind)
-
+        if gen == 2:
+            run_AI = False
+            best_genome = True
+            
 def main():    
     global WIN, run, menu_setting, run_AI, gen, score, instructions
     win = WIN
+    gameover = False
     # ALGORITHM FOR PLAYING 4 TYPES OF MUSIC
     random_music = random.randint(0,3)
     songs = [pygame.mixer.Sound(os.path.join(DIR,"base" + str(x) + ".wav")) for x in range(1,5)]
@@ -1137,6 +1142,7 @@ def main():
             for god in dios:    
                 if enemigo_top.colision_god(god,win):
                     run = False
+                    gameover = True
             if enemigo_top.x + enemigo_top.enemy_top.get_width() < 0:
                 rem_top.append(enemigo_top)
                 pasado_width = True
@@ -1158,6 +1164,7 @@ def main():
             for god in dios:    
                 if enemigo.colision_god(god,win):
                     run = False
+                    gameover = True
             if enemigo.x  + enemigo.enemy_bottom.get_height() < 0:
                 rem_bot.append(enemigo)
                 pasado_width = True
@@ -1233,6 +1240,7 @@ def main():
         for god in dios:   
             if god.rect.y + god.img.get_height() - 10  >= suelo or god.rect.y < -50:
                 run = False
+                gameover = True
             god.move(evento)
         nubes.move()
         draw_window(win, dios, dangs,ulti_dang,ulti_foto,ulti_lista,enemigos_top,enemigos_bottom,ulti_god, score, round(reloj.get_fps()), superficie,nubes,evento)       
@@ -1240,6 +1248,41 @@ def main():
     # AQUI IRIA LO DE SI LA RUN_AI IS TRUE SE PONE LA FUNCION Y CORRE LA IA
     while run_AI and not menu_setting:
         RUN(config_path)
+    while gameover and not run and not run_AI and not best_genome:
+        win.fill((0,0,0))
+        gameover_label = pygame.font.SysFont("arial", 70).render("GAME OVER", 1, (255,255,255))
+        eventos = pygame.event.get()
+        for evento in eventos: 
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                break
+        
+        win.blit(gameover_label, (150,200))
+        
+        
+        pygame.display.flip()
+        time.sleep(3)
+        pygame.quit()
+    while not run_AI and best_genome:
+        win.fill((0,0,0))
+        
+        best_player_label = pygame.font.SysFont("arial", 65, True).render("The best Genome is:", 1, (255,255,255))
+        
+        
+        eventos = pygame.event.get()
+        for evento in eventos: 
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                break
+        win.blit(best_player_label, (50,100))
+        
+        for x,god in enumerate(GODS):    
+            win.blit(GODS[0].img,(250,300))
+            
+        pygame.display.flip()
+        time.sleep(5)
+        pygame.quit()
+        
 def RUN(config_file):
         
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
